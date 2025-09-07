@@ -5,8 +5,7 @@ A simple desktop **stock & sales management** app built with **PySide6** and **S
 Features include product/variant management, a persistent cart, checkout with partial/full payments, and customer management.  
 The app stores its SQLite DB and user images in the user's data folder (AppData on Windows / `~/.local/share` on Linux/macOS) so updates won't overwrite user data.
 
-
-``` use with operating systems dark theme selected otherwise colors will be unexpected ``` 
+# use with operating systems dark theme selected otherwise colors will be unexpected 
 
 ---
 
