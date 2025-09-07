@@ -56,7 +56,7 @@ pip install -r requirements.txt
 4. Run app:
 
 ```bash
-python src/main.py
+python main.py
 ```
 
 ---
@@ -73,7 +73,7 @@ pip install pyinstaller
 3. Build:
 
 ```bash
-pyinstaller --noconfirm --onefile --windowed src/main.py --name StockPy --icon=assets/icons/stock.ico
+pyinstaller --noconfirm --onefile --windowed main.py --name StockPy --icon=assets/icons/stock.ico
 ```
 
 * The built exe will appear in `dist/StockPy.exe`.
