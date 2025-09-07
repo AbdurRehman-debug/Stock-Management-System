@@ -34,7 +34,7 @@ pip install -r requirements.txt
 
 ```bash
 git clone https://github.com/your-username/your-repo-name.git
-cd your-repo-name
+cd Stock-Management-System
 ```
 
 2. (Optional but recommended) Create a virtual environment:
@@ -56,7 +56,7 @@ pip install -r requirements.txt
 4. Run app:
 
 ```bash
-python src/main.py
+python main.py
 ```
 
 ---
@@ -73,7 +73,7 @@ pip install pyinstaller
 3. Build:
 
 ```bash
-pyinstaller --noconfirm --onefile --windowed src/main.py --name StockPy --icon=assets/icons/stock.ico
+pyinstaller --noconfirm --onefile --windowed main.py --name StockPy --icon=assets/icons/stock.ico
 ```
 
 * The built exe will appear in `dist/StockPy.exe`.
