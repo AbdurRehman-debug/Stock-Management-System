@@ -34,7 +34,7 @@ pip install -r requirements.txt
 
 ```bash
 git clone https://github.com/your-username/your-repo-name.git
-cd your-repo-name
+cd Stock-Management-System
 ```
 
 2. (Optional but recommended) Create a virtual environment:
