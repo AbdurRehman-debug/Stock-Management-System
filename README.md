@@ -1,4 +1,4 @@
-````markdown
+
 # Stock Management System (PySide6) with Cart & Customer Management
 
 A simple desktop **stock & sales management** app built with **PySide6** and **SQLite**.  
