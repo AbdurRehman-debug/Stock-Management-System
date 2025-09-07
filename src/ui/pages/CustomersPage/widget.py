@@ -157,7 +157,7 @@ class CustomersPage(QMainWindow):
         self.customers_container = QWidget()
         self.customers_layout = QGridLayout(self.customers_container)
         self.customers_layout.setContentsMargins(20, 20, 20, 20)
-        self.customers_layout.setSpacing(50)
+        self.customers_layout.setSpacing(40)
         self.customers_layout.setAlignment(Qt.AlignTop)
         
         self.scroll_area.setWidget(self.customers_container)
@@ -331,7 +331,7 @@ class CustomerCard(QFrame):
         
     def setup_ui(self):
         """Setup customer card UI"""
-        self.setFixedSize(400, 500)
+        self.setFixedSize(500, 500)
         self.setFrameShape(QFrame.StyledPanel)
         
         
