@@ -4,11 +4,11 @@ from PySide6.QtCore import Qt, QTimer
 from ....ui.components.card import ProductCard  # Your ProductCard component
 from .HomePage_ui import Ui_HomePage  # Your compiled UI file
 from ....database.database_manager import DatabaseManager
-
 class HomePage(QMainWindow, Ui_HomePage):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
+       
         
         # Store all products data for filtering
         self.all_products = []

@@ -90,13 +90,6 @@ class Main_Window(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    app.setStyleSheet("""
-    QWidget {
-        background-color: black;
-        color: white;
-    }
-    """)
-
     window = Main_Window()
     window.show()
     sys.exit(app.exec())
