@@ -1,0 +1,32 @@
+    #customer_info {
+        background-color: #34495e;
+        border: 5px solid #ff7700;
+        border-radius: 5px;
+        padding: 10px;
+    }
+
+
+    QLineEdit {
+        font-size: 13px;
+        border: 2px solid white ;
+        padding: 4px;
+        width: 200px;
+        height: 40px;
+    }
+
+    #guest_btn {
+        font-size: 13px;
+        border: 1px solid;
+        background-color: #00d9ff;
+        padding: 4px;
+        width: 150px;
+        height: 20px;
+        color: black;
+        border-radius: 5px;
+    }
+    #guest_btn:hover {
+        background-color: #2a00b8e6;
+        color:white;
+    }
+
+   

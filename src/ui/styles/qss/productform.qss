@@ -1,0 +1,50 @@
+#very_basic_info,
+#general_info,
+#groupBox_3 {
+    background-color: #00607A;
+    border: 5px solid #d0dd0e;
+    border-radius: 5px;
+    padding: 10px;
+    font-size: 14px;
+}
+
+#img_btn,
+#addCategoryBtn,
+#saveproductbtn,#categories_img_btn {
+    background-color: #007BFF;
+    border: 2px solid #0056b3;
+    border-radius: 5px;
+    padding: 4px;
+    color: white;
+    margin:10px
+}
+
+#img_btn:hover,
+#addCategoryBtn:hover,
+#saveproductbtn:hover,
+#categories_img_btn:hover {
+    background-color: #780057b3;
+}
+#dynamic_category {
+    background-color: #ff413a3a;
+    border: 4px solid #ffffff;
+    border-radius: 5px;
+    padding: 10px;
+    color: white;
+    margin-bottom: 15px;
+}
+
+#remove_category_btn {
+    background-color: #ffb72c2c;
+    border: 2px solid #000000;
+    border-radius: 5px;
+    padding: 5px;
+    color: white;
+    margin: 5px;
+
+}
+QLineEdit,QTextEdit,QSpinBox,QDoubleSpinBox {
+    font-size: 13px;
+    border: 3px solid;
+    padding: 4px;
+}
