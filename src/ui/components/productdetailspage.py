@@ -242,12 +242,22 @@ class ProductDetailPage(QWidget):
         self.details_layout.setHorizontalSpacing(15)
 
         # Create input fields
+        # Purchase Price
         self.purchase_price = QDoubleSpinBox()
+        self.purchase_price.setDecimals(2)          # <-- Set 2 decimal places
+        self.purchase_price.setMaximum(999999.0)    # Max value
         self.purchase_price.setValue(float(self.product_data.get("purchase_price", 0)))
+
+        # Selling Price
         self.selling_price = QDoubleSpinBox()
+        self.selling_price.setDecimals(2)           # <-- Set 2 decimal places
+        self.selling_price.setMaximum(999999.0)
         self.selling_price.setValue(float(self.product_data.get("selling_price", 0)))
+
         self.stock = QSpinBox()
+        self.stock.setMaximum(999999)  # Set max value
         self.stock.setValue(int(self.product_data.get("stock", 0)))
+
         self.variant_id = QLineEdit(str(self.product_data.get("variant_id", "N/A")))
         self.status = QLineEdit(self.product_data.get("status", "N/A"))
 
