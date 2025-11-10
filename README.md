@@ -96,12 +96,6 @@ This keeps user data persistent across app updates.
 
 ---
 
-## What to push to GitHub
-
-* Push **source files** only (`src/`, `assets/`, `README.md`, `requirements.txt`, etc.)
-* **Do not** commit `dist/`, `build/`, or `*.exe` files. Use GitHub Releases for binaries.
-
----
 
 ## License
 
