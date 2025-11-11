@@ -1,8 +1,3 @@
-from ....database.database_manager import DatabaseManager
-from PySide6.QtWidgets import (
-    QMainWindow, QVBoxLayout, QGroupBox, QLabel,
-    QLineEdit, QPushButton, QWidget, QSpinBox, QDoubleSpinBox, QFileDialog, QMessageBox
-)
 """
 Simple Product Import - Add to AddProductsPage
 """
@@ -34,7 +29,13 @@ class ProductImporter:
             selling = float(match.group(3))
             return (stock, purchase, selling)
         
-        
+        # Try pattern: 2x/650) 1200 (stock, purchase, selling separated)
+        match = re.search(r'(\d+)x/?(\d+)\)?\s*(\d+)', category_str)
+        if match:
+            stock = int(match.group(1))
+            purchase = float(match.group(2))
+            selling = float(match.group(3))
+            return (stock, purchase, selling)
         
         return None
     
@@ -109,55 +110,13 @@ class ProductImporter:
 
 
 
-# ============== JSON FILE FORMAT ==============
+# ============== JSON FILE FORMAT - BOTH WORK! ==============
 """
-Save this as 'products.json':
-
+FORMAT 1: String format (messy, needs parsing)
 [
   {
     "Name": "Reno 12F",
     "Brand": "OPPO",
-    "Description": "Latest Reno series",
-    "Categories": {
-      "R+B": "141250 (1950) 2x/ifo (1750)",
-      "B": "1x600 (1150)"
-    }
-  },
-  {
-    "Name": "Note 50 (C51)",
-    "Brand": "Infinix",
-    "Categories": {
-      "R+B": "2x/650) 1200"
-    }
-  },
-  {
-    "Name": "A18",
-    "Brand": "Samsung",
-    "Categories": {
-      "Hosing+B": "1x(1250) (2100)"
-    }
-  },
-  {
-    "Name": "AS4, added",
-    "Brand": "Samsung",
-    "Categories": {
-      "R+B": "2x750 (850)/(1200)",
-      "B": "1x300 (500)",
-      "Hosing+B": "1x1050 (1550)"
-    }
-  },
-  {
-    "Name": "Simple Product",
-    "Brand": "Local",
-    "Description": "No categories"
-  }
-]
-
-Or simpler format:
-
-[
-  {
-    "Name": "Reno 12F",
     "Categories": {
       "8/256GB": "5x141250(150000)",
       "12/512GB": "3x180000(195000)"
@@ -165,6 +124,46 @@ Or simpler format:
   }
 ]
 
-Format: STOCKxPURCHASE_PRICE(SELLING_PRICE)
-Example: 5x141250(150000) = 5 units, buy at 141250, sell at 150000
+FORMAT 2: Pre-parsed format (clean, already structured)
+[
+  {
+    "Name": "Reno 12F",
+    "Brand": "OPPO",
+    "Description": "Latest flagship",
+    "Categories": {
+      "8/256GB": {
+        "stock": 5,
+        "purchase_price": 141250,
+        "selling_price": 150000
+      },
+      "12/512GB": {
+        "stock": 3,
+        "purchase_price": 180000,
+        "selling_price": 195000
+      }
+    }
+  },
+  {
+    "Name": "A18",
+    "Brand": "Samsung",
+    "Categories": {
+      "64GB": {
+        "stock": 10,
+        "purchase_price": 18000,
+        "selling_price": 21000
+      }
+    }
+  }
+]
+
+FORMAT 3: No categories (saves as "Uncategorized")
+[
+  {
+    "Name": "Simple Phone",
+    "Brand": "Local",
+    "Description": "Basic phone with no variants"
+  }
+]
+
+All three formats work! Mix and match in the same file if you want.
 """
