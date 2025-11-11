@@ -1,7 +1,8 @@
 from PySide6.QtWidgets import (
     QMainWindow, QVBoxLayout, QGroupBox, QLabel,
-    QLineEdit, QPushButton, QWidget, QSpinBox, QDoubleSpinBox, QFileDialog, QMessageBox
+    QLineEdit, QPushButton, QWidget, QSpinBox, QDoubleSpinBox, QFileDialog, QMessageBox,QHBoxLayout, QSpacerItem, QSizePolicy
 )
+from .productsimport import ProductImporter
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QCursor
 from .ProductsFormPage_ui import Ui_MainWindow
@@ -32,6 +33,65 @@ class AddProductsPage(QMainWindow, Ui_MainWindow):
 
         self.saveproductbtn.clicked.connect(self.handle_save_product)
 
+        # ADD THIS LINE - Setup import button at bottom
+        self.setup_import_button()
+    def setup_import_button(self):
+        """Add import button at the bottom"""
+        from PySide6.QtGui import QCursor
+        from PySide6.QtCore import Qt
+
+        # Create import button
+        self.import_json_btn = QPushButton("Import Products (JSON)")
+        self.import_json_btn.setObjectName("import_btn")
+        self.import_json_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        self.import_json_btn.setStyleSheet("""
+            #import_btn {
+                background-color: #28a745;
+                border: 2px solid #1e7e34;
+                border-radius: 5px;
+                padding: 8px;
+                color: white;
+                font-weight: bold;
+                margin: 10px;
+            }
+            #import_btn:hover {
+                background-color: #218838;
+            }
+        """)
+        self.import_json_btn.clicked.connect(self.import_products)
+
+        # Add to layout - right after saveproductbtn
+        index = self.verticalLayout_2.indexOf(self.saveproductbtn)
+        self.verticalLayout_2.insertWidget(index + 1, self.import_json_btn, 0, Qt.AlignHCenter)
+
+    def import_products(self):
+        """Import products from JSON file"""
+        file_name, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select JSON File",
+            "",
+            "JSON Files (*.json)"
+        )
+
+        if not file_name:
+            return
+
+        # Create importer
+        from .productsimport import ProductImporter
+        importer = ProductImporter(DatabaseManager())
+
+        # Import
+        success, imported, failed, errors = importer.import_from_json(file_name)
+
+        # Show results
+        if success:
+            msg = f"Import Complete!\n\nImported: {imported}\nFailed: {failed}"
+            if errors and len(errors) > 0:
+                msg += f"\n\nFirst few errors:\n" + "\n".join(errors[:5])
+            QMessageBox.information(self, "Import Complete", msg)
+            self.clear_form()  # Clear form after successful import
+        else:
+            QMessageBox.critical(self, "Import Failed", "\n".join(errors))
     def add_category(self):
         """Add a new category section dynamically"""
         # Hide general fields (stock & price) only once

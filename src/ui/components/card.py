@@ -19,7 +19,7 @@ class ProductCard(QFrame):
 
     def setup_ui(self): 
         """Create the card UI"""
-        self.setFixedSize(310, 484)
+        self.setFixedSize(310, 490)
 
         # Main layout
         layout = QVBoxLayout(self)
@@ -41,7 +41,7 @@ class ProductCard(QFrame):
         self.title_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.title_label)
 
-        self.subtitle_label = QLabel(f"Category: {self.product_data.get('category', 'uncategorized')}")
+        self.subtitle_label = QLabel(f"Category : {self.product_data.get('category', 'uncategorized')}")
         self.subtitle_label.setWordWrap(True)
         self.subtitle_label.setAlignment(Qt.AlignCenter)
         self.subtitle_label.setObjectName("subtitle_label")
@@ -149,6 +149,7 @@ class ProductCard(QFrame):
                     color: #6c757d;
                     border-radius: 8px;
                     font-size: 12px;
+                    margin-bottom:8px;
 
 
               
@@ -163,9 +164,7 @@ class ProductCard(QFrame):
                 border: 1px solid #e0e0e0;
                 border-radius: 12px;
                 margin: 12px;
-                padding: 12px;
-
-
+                padding:10px;
             }
             ProductCard:hover {
                 border: 1px solid #007bff;
@@ -188,13 +187,15 @@ class ProductCard(QFrame):
             }
             #subtitle_label
             {
-                color: #6c757d;
-                font-size: 14px;
+                color: #4da3ff;
+                font-size: 16px;
+                font-weight:Bold;
                            
 
             }
             #title_label
             {
+                 margin-top:8px;
                 color: #ffffff;
                 font-size: 18px;
                 font-weight: bold;
