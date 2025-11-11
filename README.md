@@ -95,6 +95,63 @@ Images copied from users are saved under `.../StockManager/images/`.
 This keeps user data persistent across app updates.
 
 ---
+Excellent point 👍 — yes, you should include both **purchase** and **selling** prices in your JSON format.
+
+Here’s the **correct and updated JSON format section** you can add directly to your README:
+
+---
+
+## 🧾 JSON Import Format
+
+When importing products from a JSON file, make sure your file follows this structure:
+
+```json
+[
+    {
+        "Name": "F21 Pro 4G",
+        "Brand": "Oppo",
+        "Categories": {
+            "M+B": {
+                "Purchase Price": 900,
+                "Selling Price": 1500
+            },
+            "B": {
+                "Purchase Price": 750,
+                "Selling Price": 1200
+            },
+            "Housing Full": {
+                "Purchase Price": 1200,
+                "Selling Price": 1800
+            }
+        }
+    },
+    {
+        "Name": "A17",
+        "Brand": "Oppo",
+        "Categories": {
+            "Housing Full": {
+                "Purchase Price": 750,
+                "Selling Price": 1150
+            }
+        }
+    }
+]
+```
+
+### Notes:
+
+* `"Name"` → Product name (**required**)
+* `"Brand"` → Brand name (**optional but recommended**)
+* `"Categories"` → Each category key (like `"M+B"` or `"Housing Full"`) contains:
+
+  * `"Purchase Price"` — the cost price
+  * `"Selling Price"` — the retail price
+* Missing or empty category entries will be **skipped automatically** during import.
+* JSON files can be created manually or generated from `.csv` using any provided CSV-to-JSON converter tool.
+
+---
+
+
 
 
 
