@@ -95,15 +95,21 @@ Images copied from users are saved under `.../StockManager/images/`.
 This keeps user data persistent across app updates.
 
 ---
-Excellent point 👍 — yes, you should include both **purchase** and **selling** prices in your JSON format.
 
-Here’s the **correct and updated JSON format section** you can add directly to your README:
+
+
 
 ---
 
 ## 🧾 JSON Import Format
 
-When importing products from a JSON file, make sure your file follows this structure:
+The app supports importing **both categorized** and **uncategorized** products from JSON files.
+
+---
+
+### 🗂️ Categorized Products 
+
+Use this format when products have multiple variants or categories like “M+B”, “B”, or “Housing Full”.
 
 ```json
 [
@@ -138,18 +144,58 @@ When importing products from a JSON file, make sure your file follows this struc
 ]
 ```
 
-### Notes:
+✅ **Notes:**
 
 * `"Name"` → Product name (**required**)
 * `"Brand"` → Brand name (**optional but recommended**)
-* `"Categories"` → Each category key (like `"M+B"` or `"Housing Full"`) contains:
+* `"Categories"` → Contains one or more variants, each with:
 
   * `"Purchase Price"` — the cost price
   * `"Selling Price"` — the retail price
-* Missing or empty category entries will be **skipped automatically** during import.
-* JSON files can be created manually or generated from `.csv` using any provided CSV-to-JSON converter tool.
+* Empty or missing categories are **automatically skipped** during import.
 
 ---
+
+### 📦 Uncategorized Products
+
+Use this simpler format when each product has only one price and no separate categories.
+
+```json
+[
+    {
+        "Name": "iPhone 13 Pro Max Display",
+        "Brand": "Apple",
+        "Purchase Price": 40000,
+        "Selling Price": 50000
+    },
+    {
+        "Name": "Samsung A32 Battery",
+        "Brand": "Samsung",
+        "Purchase Price": 1500,
+        "Selling Price": 2300
+    }
+]
+```
+
+✅ **Notes:**
+
+* Suitable for **simple single-variant products**
+* Fields:
+
+  * `"Name"` — product name (**required**)
+  * `"Brand"` — optional
+  * `"Purchase Price"` and `"Selling Price"` — required numeric values
+
+---
+
+### 💡 Additional Info
+
+* Files can be selected through the app’s **Import from JSON** dialog .
+* JSON files should be **UTF-8 encoded**.
+* Any product with missing prices or empty names will be **ignored automatically** during import.
+
+---
+
 
 
 
