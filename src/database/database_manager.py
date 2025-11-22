@@ -1,7 +1,7 @@
 import sqlite3
 from datetime import datetime
 import os
-
+import hashlib
 class DatabaseManager:
     def __init__(self, db_name="stock_management.db"):
         # Get AppData folder (Windows) or ~/.local/share (Linux/macOS)
@@ -337,13 +337,21 @@ class DatabaseManager:
     
         return cursor.fetchall()
 
-    def save_edited_products(self, description, purchase_price, selling_price, stock_quantity, image_path=None, variant_id=None):
+    def save_edited_products(self,name, brand,category, description, purchase_price, selling_price, stock_quantity, image_path=None, variant_id=None):
         cursor = self.conn.cursor()
         cursor.execute("""
             UPDATE products
-            SET description = ?
+            SET name = ?,
+                brand = ?,
+                description = ?
             WHERE id = (SELECT product_id FROM product_variants WHERE id = ?)
-        """, (description, variant_id))
+        """, (name, brand, description, variant_id))
+
+        cursor.execute("""UPDATE categories
+            SET name = ?
+            WHERE id = (SELECT category_id FROM product_variants WHERE id = ?)
+        """, (category, variant_id))
+        print("Updated category to =", category)
         
         cursor.execute("""
             UPDATE product_variants
@@ -969,6 +977,102 @@ class DatabaseManager:
         sale_items = cursor.fetchall()
         
         return sale_info, sale_items
+    # Add this method to your DatabaseManager class in database_manager.py
+
+    def get_inventory_stats(self):
+        """Get inventory statistics: total items, budget spent, expected revenue, potential profit"""
+        cursor = self.conn.cursor()
+        
+        # Get total stock quantity across all active variants
+        cursor.execute("""
+            SELECT COALESCE(SUM(stock_quantity), 0)
+            FROM product_variants
+            WHERE status = 'active'
+        """)
+        total_items = cursor.fetchone()[0]
+        
+        # Get total budget spent (purchase_price * stock_quantity)
+        cursor.execute("""
+            SELECT COALESCE(SUM(purchase_price * stock_quantity), 0)
+            FROM product_variants
+            WHERE status = 'active'
+        """)
+        total_budget = cursor.fetchone()[0]
+        
+        # Get expected revenue (selling_price * stock_quantity)
+        cursor.execute("""
+            SELECT COALESCE(SUM(selling_price * stock_quantity), 0)
+            FROM product_variants
+            WHERE status = 'active'
+        """)
+        expected_revenue = cursor.fetchone()[0]
+        
+        # Calculate potential profit
+        potential_profit = expected_revenue - total_budget
+        
+        return total_items, total_budget, expected_revenue, potential_profit
+
+
+
+# Add these methods to the DatabaseManager class:
+
+    def create_password_table(self):
+        """Create password table if it doesn't exist - safe to run on existing database"""
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS app_password (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                password_hash TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        self.conn.commit()
+    
+    def hash_password(self, password):
+        """Hash password using SHA-256"""
+        return hashlib.sha256(password.encode()).hexdigest()
+    
+    def set_password(self, password):
+        """Set or update the app password"""
+        cursor = self.conn.cursor()
+        password_hash = self.hash_password(password)
+        
+        cursor.execute("""
+            INSERT OR REPLACE INTO app_password (id, password_hash, updated_at)
+            VALUES (1, ?, ?)
+        """, (password_hash, datetime.now().isoformat()))
+        
+        self.conn.commit()
+        return True
+    
+    def verify_password(self, password):
+        """Verify if the entered password is correct"""
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT password_hash FROM app_password WHERE id = 1")
+        result = cursor.fetchone()
+        
+        if not result:
+            return False
+        
+        stored_hash = result[0]
+        entered_hash = self.hash_password(password)
+        
+        return stored_hash == entered_hash
+    
+    def has_password(self):
+        """Check if a password has been set"""
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM app_password WHERE id = 1")
+        return cursor.fetchone()[0] > 0
+    
+    def change_password(self, old_password, new_password):
+        """Change password after verifying old password"""
+        if not self.verify_password(old_password):
+            return False, "Current password is incorrect"
+        
+        self.set_password(new_password)
+        return True, "Password changed successfully"
 
 if __name__ == "__main__":
     db = DatabaseManager()

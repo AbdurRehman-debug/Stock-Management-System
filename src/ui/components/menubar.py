@@ -13,6 +13,8 @@ class Navbar(QToolBar):
         self.sales = QAction("Sales", self)
         self.addProduct = QAction("Add Product", self)
         self.customerspage = QAction("Customers", self)
+        self.settings = self.addAction("⚙️ Settings")
+        self.settings.setToolTip("Password Settings")
         
 
        

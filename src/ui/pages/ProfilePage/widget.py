@@ -61,6 +61,9 @@ class DashboardPage(QMainWindow):
         # Overall stats (always visible)
         self.setup_overall_stats(layout)
         
+        # NEW: Inventory stats section
+        self.setup_inventory_stats(layout)
+        
         # Filter section
         self.setup_filters(layout)
         
@@ -142,6 +145,44 @@ class DashboardPage(QMainWindow):
         
         layout.addLayout(stats_grid)
         parent_layout.addWidget(stats_frame)
+    
+    def setup_inventory_stats(self, parent_layout):
+        """Setup inventory statistics section"""
+        inventory_frame = QFrame()
+        inventory_frame.setStyleSheet("""
+            QFrame {
+                background-color: #34495e;
+                border-radius: 12px;
+                padding: 20px;
+            }
+        """)
+        
+        layout = QVBoxLayout(inventory_frame)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+        
+        title = QLabel("Inventory Overview")
+        title.setStyleSheet("color: white; font-size: 20px; font-weight: bold; margin-bottom: 15px;")
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
+        
+        # Inventory stats grid
+        inventory_grid = QGridLayout()
+        inventory_grid.setSpacing(15)
+        
+        # Create inventory stat cards
+        self.total_items_card = self.create_stat_card("Total Items in Stock", "0", "#9b59b6")
+        self.total_budget_card = self.create_stat_card("Total Budget Spent", "PKR 0", "#e67e22")
+        self.expected_revenue_card = self.create_stat_card("Expected Revenue", "PKR 0", "#1abc9c")
+        self.potential_profit_card = self.create_stat_card("Potential Profit", "PKR 0", "#16a085")
+        
+        inventory_grid.addWidget(self.total_items_card, 0, 0)
+        inventory_grid.addWidget(self.total_budget_card, 0, 1)
+        inventory_grid.addWidget(self.expected_revenue_card, 1, 0)
+        inventory_grid.addWidget(self.potential_profit_card, 1, 1)
+        
+        layout.addLayout(inventory_grid)
+        parent_layout.addWidget(inventory_frame)
         
     def create_stat_card(self, title, value, color):
         """Create a simple stat card"""
@@ -346,6 +387,40 @@ class DashboardPage(QMainWindow):
                 
         except Exception as e:
             print(f"Error applying filter: {e}")
+    
+    def load_inventory_stats(self):
+        """Load inventory statistics"""
+        try:
+            inventory_stats = self.db_manager.get_inventory_stats()
+            
+            if inventory_stats:
+                total_items, total_budget, expected_revenue, potential_profit = inventory_stats
+                
+                # Update inventory cards
+                items_label = self.total_items_card.findChild(QLabel, "value_label")
+                if items_label:
+                    items_label.setText(str(total_items))
+                
+                budget_label = self.total_budget_card.findChild(QLabel, "value_label")
+                if budget_label:
+                    budget_label.setText(f"PKR {total_budget:,.2f}")
+                
+                revenue_label = self.expected_revenue_card.findChild(QLabel, "value_label")
+                if revenue_label:
+                    revenue_label.setText(f"PKR {expected_revenue:,.2f}")
+                
+                profit_label = self.potential_profit_card.findChild(QLabel, "value_label")
+                if profit_label:
+                    profit_label.setText(f"PKR {potential_profit:,.2f}")
+            else:
+                # Set default values
+                self.total_items_card.findChild(QLabel, "value_label").setText("0")
+                self.total_budget_card.findChild(QLabel, "value_label").setText("PKR 0")
+                self.expected_revenue_card.findChild(QLabel, "value_label").setText("PKR 0")
+                self.potential_profit_card.findChild(QLabel, "value_label").setText("PKR 0")
+                
+        except Exception as e:
+            print(f"Error loading inventory stats: {e}")
         
     def load_data(self):
         """Load all dashboard data"""
@@ -385,6 +460,9 @@ class DashboardPage(QMainWindow):
                 self.total_customers_card.findChild(QLabel, "value_label").setText("0")
                 self.pending_payments_card.findChild(QLabel, "value_label").setText("PKR 0")
             
+            # Load inventory stats
+            self.load_inventory_stats()
+            
             # Load filtered data
             self.apply_filter()
             
@@ -394,7 +472,7 @@ class DashboardPage(QMainWindow):
             self.company_name_label.setText("Your Business")
         
     def setup_auto_refresh(self):
-        """Setup auto refresh every 30 seconds"""
+        """Setup auto refresh every 5 seconds"""
         self.refresh_timer = QTimer()
         self.refresh_timer.timeout.connect(self.load_data)
         self.refresh_timer.start(5000)  # 5 seconds

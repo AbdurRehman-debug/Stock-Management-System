@@ -58,8 +58,8 @@ class ProductDetailPage(QWidget):
         """Update the UI elements with latest product data"""
         # Header
         self.name_label.setText(self.product_data.get("name", "Unnamed Product"))
-        self.brand_label.setText(f"Brand: {self.product_data.get('brand', 'N/A')}")
-        self.category_label.setText(f"Category: {self.product_data.get('category', 'N/A')}")
+        self.brand_label.setText(self.product_data.get('brand', 'N/A'))
+        self.category_label.setText(self.product_data.get('category', 'N/A'))
         self.update_image_display()
 
         # Description
@@ -131,32 +131,44 @@ class ProductDetailPage(QWidget):
         info_layout = QVBoxLayout()
         info_layout.setSpacing(10)
         
-        self.name_label = QLabel(self.product_data.get("name", "Unnamed Product"))
+        self.name_label = QLineEdit(self.product_data.get("name", "Unnamed Product"))
+        self.name_label.setReadOnly(True)
         self.name_label.setStyleSheet("""
             font-size: 24px;
             font-weight: bold;
             color: #ffffff;
-            margin-bottom: 10px;
+            background: transparent;
+            border: none;
         """)
+
         info_layout.addWidget(self.name_label)
 
         brand = self.product_data.get("brand", "N/A")
-        self.brand_label = QLabel(f"Brand: {brand}")
+        print("RAW BRAND VALUE =", repr(brand))
+        self.brand_heading = QLabel("Brand:")
+        self.brand_label = QLineEdit(brand)
+        self.brand_label.setReadOnly(True)
         self.brand_label.setStyleSheet("""
-            font-size: 14px;
+            font-size: 20px;
             color: #9ca3af;
             padding: 2px 0;
         """)
         
         category = self.product_data.get("category", "N/A")
-        self.category_label = QLabel(f"Category: {category}")
+        print("RAW CATEGORY VALUE =", repr(category))
+        self.category_heading = QLabel("Category:")
+        self.category_label = QLineEdit(category)
+
+        self.category_label.setReadOnly(True)
         self.category_label.setStyleSheet("""
-            font-size: 14px;
+            font-size: 20px;
             color: #9ca3af;
             padding: 2px 0;
         """)
 
+        info_layout.addWidget(self.brand_heading)
         info_layout.addWidget(self.brand_label)
+        info_layout.addWidget(self.category_heading)
         info_layout.addWidget(self.category_label)
         info_layout.addStretch()
 
@@ -321,7 +333,7 @@ class ProductDetailPage(QWidget):
         # Edit/Save button
         self.edit_button = QPushButton("Edit")
         self.edit_button.setStyleSheet(self.blue_button_style())
-        self.edit_button.clicked.connect(self.toggle_edit_mode)
+        self.edit_button.clicked.connect(self.autheticate_before_edits)
 
         self.delete_btn = QPushButton("Delete")
         self.delete_btn.setStyleSheet(self.red_button_style())
@@ -397,6 +409,16 @@ class ProductDetailPage(QWidget):
             self.upload_button.show()
             if self.product_data.get("image"):
                 self.remove_button.show()
+            
+            #add editable name option
+            self.name_label.setReadOnly(False)
+            self.name_label.setStyleSheet(self.edit_style)
+
+            self.category_label.setReadOnly(False)
+            self.category_label.setStyleSheet(self.edit_style)
+
+            self.brand_label.setReadOnly(False)
+            self.brand_label.setStyleSheet(self.edit_style)
 
             self.desc.setReadOnly(False)
             self.desc.setStyleSheet(self.desc_edit_style())
@@ -415,6 +437,28 @@ class ProductDetailPage(QWidget):
             self.upload_button.hide()
             self.remove_button.hide()
 
+            #name editable to false
+            self.name_label.setReadOnly(True)
+            self.name_label.setStyleSheet("""
+                font-size: 24px;
+                font-weight: bold;
+                color: #ffffff;
+                background: transparent;
+                border: none;
+            """)
+
+            self.category_label.setReadOnly(True)
+            self.category_label.setStyleSheet("""
+                font-size: 20px;
+                color: #9ca3af;
+                padding: 2px 0;
+            """)
+            self.brand_label.setReadOnly(True)
+            self.brand_label.setStyleSheet("""
+                font-size: 20px;
+                color: #9ca3af;
+                padding: 2px 0;
+            """)
             self.desc.setReadOnly(True)
             self.desc.setStyleSheet(self.desc_readonly_style())
             for field in [self.purchase_price, self.selling_price, self.stock]:
@@ -422,12 +466,16 @@ class ProductDetailPage(QWidget):
                 field.setStyleSheet(readonly_style)
 
             # Save back to product_data
+            self.product_data["name"] = self.name_label.text()
+            self.product_data["brand"] = self.brand_label.text()
+            self.product_data["category"] = self.category_label.text()
             self.product_data["description"] = self.desc.toPlainText()
             self.product_data["purchase_price"] = self.purchase_price.value()
             self.product_data["selling_price"] = self.selling_price.value()
             self.product_data["stock"] = self.stock.value()
             #  save to the database
-            self.db.save_edited_products(self.product_data["description"], self.product_data["purchase_price"], self.product_data["selling_price"], self.product_data["stock"], self.product_data["image"], self.product_data["variant_id"])
+           
+            self.db.save_edited_products( self.product_data["name"],self.product_data["brand"], self.product_data["category"], self.product_data["description"], self.product_data["purchase_price"], self.product_data["selling_price"], self.product_data["stock"], self.product_data["image"], self.product_data["variant_id"])
 
     def upload_image(self):
         file_path, _ = QFileDialog.getOpenFileName(
@@ -594,3 +642,41 @@ class ProductDetailPage(QWidget):
             cart_manager.add_product_to_cart(variant_id)
         except Exception as e:
             print(f"Error adding to cart: {e}")   
+
+    def autheticate_before_edits(self):
+        auth_dialog = AuthenticationDialog(self.db)
+
+        if auth_dialog.exec() == QDialog.Accepted:
+            self.toggle_edit_mode()
+
+      
+from PySide6.QtWidgets import QDialog
+class AuthenticationDialog(QDialog):
+    def __init__(self, db):
+        super().__init__()
+        self.db = db
+        self.setWindowTitle("Authentication Required")
+        self.setFixedSize(300, 150)
+
+        layout = QVBoxLayout(self)
+
+        layout.addWidget(QLabel("Enter admin password:"))
+
+        self.password_input = QLineEdit()
+        self.password_input.setEchoMode(QLineEdit.Password)
+        layout.addWidget(self.password_input)
+
+        self.submit_btn = QPushButton("Verify")
+        self.submit_btn.clicked.connect(self.verify_password)
+        layout.addWidget(self.submit_btn)
+
+    def verify_password(self):
+        password = self.password_input.text().strip()
+
+        # You can replace this with any DB check you want
+        is_valid = self.db.verify_password(password)
+
+        if is_valid:
+            self.accept()  # close dialog and return success
+        else:
+            QMessageBox.warning(self, "Error", "Invalid password!")
