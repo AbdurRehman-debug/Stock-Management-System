@@ -47,35 +47,36 @@ class HomePage(QMainWindow, Ui_HomePage):
         self.search_timer.start(300)
 
     def filter_products(self):
-        """Filter products based on search text"""
         try:
             search_text = self.searchbox.text().lower().strip()
-            
-            # Clear current products display
+    
             self.clear_products()
-            
+    
             if not search_text:
-                # If search is empty, show all products
                 self.display_products(self.all_products)
-            else:
-                # Filter products by name or category
-                filtered_products = []
-                for product in self.all_products:
-                    product_name = product.get('name', '').lower()
-                    product_category = product.get('category', '').lower()
-                    product_brand = product.get('brand', '').lower()
-                    
-                    # Check if search text matches name, category, or brand
-                    if (search_text in product_name or 
-                        search_text in product_category or 
-                        search_text in product_brand):
-                        filtered_products.append(product)
-                
-                # Display filtered products
-                self.display_products(filtered_products)
-                
+                return
+    
+            keywords = search_text.split()  # allow multiple keywords
+    
+            filtered = []
+            for product in self.all_products:
+                name = product.get("name", "").lower()
+                category = product.get("category", "").lower()
+                brand = product.get("brand", "").lower()
+    
+                # combine all searchable data
+                blob = f"{name} {category} {brand}"
+    
+                # ALL keywords must match somewhere
+                if all(kw in blob for kw in keywords):
+                    filtered.append(product)
+    
+            # Display
+            self.display_products(filtered)
+    
         except Exception as e:
-            print(f"Error filtering products: {e}")
+            print("Search error:", e)
+
 
     def display_products(self, products_list):
         """Display a list of products"""

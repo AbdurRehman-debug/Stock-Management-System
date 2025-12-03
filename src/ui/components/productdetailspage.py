@@ -337,7 +337,7 @@ class ProductDetailPage(QWidget):
 
         self.delete_btn = QPushButton("Delete")
         self.delete_btn.setStyleSheet(self.red_button_style())
-        self.delete_btn.clicked.connect(lambda: self.handle_delete_variant(self.product_data.get("variant_id")))
+        self.delete_btn.clicked.connect(self.autheticate_before_deletes)
 
         self.activate_btn = QPushButton("Activate")
         self.activate_btn.setStyleSheet(self.green_button_style())
@@ -648,6 +648,11 @@ class ProductDetailPage(QWidget):
 
         if auth_dialog.exec() == QDialog.Accepted:
             self.toggle_edit_mode()
+    def autheticate_before_deletes(self):
+        auth_dialog = AuthenticationDialog(self.db)
+
+        if auth_dialog.exec() == QDialog.Accepted:
+            self.handle_delete_variant(self.product_data.get("variant_id"))
 
       
 from PySide6.QtWidgets import QDialog
