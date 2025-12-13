@@ -111,7 +111,7 @@ class CustomersPage(QMainWindow):
         # Status filter
         status_label = QLabel("Status:")
         self.status_filter = QComboBox()
-        self.status_filter.addItems(["All Customers", "Paid in Full", "Partial Payment", "Payment Pending"])
+        self.status_filter.addItems(["All Customers", "Paid in Full", "Partial Payment", "Payment Pending","Discount Applied"])
         self.status_filter.currentTextChanged.connect(self.filter_customers)
         
         filter_layout.addWidget(status_label)
@@ -288,6 +288,10 @@ class CustomersPage(QMainWindow):
                         should_show = False
                     elif status_filter == "Partial Payment" and card_status != "partial":
                         should_show = False
+                    elif status_filter == "Discount Applied":
+                        discount_amount = card.customer_data.get('discount_amount', 0)
+                        if discount_amount <= 0:
+                            should_show = False
                     elif status_filter == "Payment Pending" and card_status != "pending":
                         should_show = False
                 
@@ -331,14 +335,13 @@ class CustomerCard(QFrame):
         
     def setup_ui(self):
         """Setup customer card UI"""
-        self.setFixedSize(500, 500)
+        self.setFixedSize(500, 460)  # Increased height to fit profit
         self.setFrameShape(QFrame.StyledPanel)
-        
-        
+    
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(10)
-        
+    
         # Customer name and type and id
         name_layout = QHBoxLayout()
         id_label = QLabel(f"ID: {self.customer_data.get('id')}")
@@ -347,30 +350,55 @@ class CustomerCard(QFrame):
         name_label.setStyleSheet("font-size: 16px; font-weight: bold; color: white;")
         name_layout.addWidget(id_label)
         name_layout.addWidget(name_label)
-
+    
         # Status indicator
         status_indicator = self.create_status_indicator()
         name_layout.addStretch()
         name_layout.addWidget(status_indicator)
-
+    
         layout.addLayout(name_layout)
-        
+    
         # Phone number
         phone_label = QLabel(f"Phone: {self.customer_data.get('phone') or 'Not provided'}")
         phone_label.setStyleSheet("font-size: 12px; color: white;")
         layout.addWidget(phone_label)
-        
+    
         # Customer type
         type_label = QLabel(f"Type: {self.customer_data.get('customer_type', '').replace('_', ' ').title()}")
         type_label.setStyleSheet("font-size: 12px; color: white;")
         layout.addWidget(type_label)
-        
+    
+        # Get discount and profit from database
+        cursor = self.db_manager.conn.cursor()
+        cursor.execute("""
+            SELECT discount_amount, total_profit FROM sales 
+            WHERE id = ? AND status = 'completed'
+        """, (self.customer_data.get('sale_id'),))
+        sale_result = cursor.fetchone()
+        discount_amount = sale_result[0] if sale_result else 0
+        sale_profit = sale_result[1] if sale_result else 0
+    
         # Payment summary
         total_purchased = QLabel(f"Total Purchased: PKR {self.customer_data.get('total_amount', 0):,.2f}")
         total_purchased.setStyleSheet("font-size: 14px; font-weight: bold; color: #e74c3c;")
+    
+        # Show discount if applicable
+        if discount_amount > 0:
+            discount_label = QLabel(f"💰 Discount Applied: PKR {discount_amount:,.2f}")
+            discount_label.setStyleSheet("font-size: 13px; font-weight: bold; color: #f39c12;")
+            layout.addWidget(discount_label)
+    
         total_paid = QLabel(f"Total Paid: PKR {self.customer_data.get('amount_paid', 0):,.2f}")
         total_paid.setStyleSheet("font-size: 14px; font-weight: bold; color: #27ae60;")
-
+    
+        # ✅ NEW: Show profit for this sale
+        profit_color = "#27ae60" if sale_profit >= 0 else "#e74c3c"  # Green if profit, red if loss
+        profit_symbol = "📈" if sale_profit >= 0 else "📉"
+        profit_text = "Profit" if sale_profit >= 0 else "Loss"
+        
+        sale_profit_label = QLabel(f"{profit_symbol} Sale {profit_text}: PKR {abs(sale_profit):,.2f}")
+        sale_profit_label.setStyleSheet(f"font-size: 14px; font-weight: bold; color: {profit_color};")
+    
         # Purchased items
         purchased_title = QLabel("Items Purchased:")
         purchased_title.setStyleSheet("font-size: 12px; font-weight: bold; color: white;")
@@ -380,16 +408,27 @@ class CustomerCard(QFrame):
             item_label = QLabel(f" - {item[0]} (Category: {item[1]}, Price: PKR {item[2]:,.2f}, Quantity: {item[3]})")
             item_label.setStyleSheet("font-size: 12px; color: white;")
             layout.addWidget(item_label)
-
+    
         layout.addWidget(total_purchased)
         layout.addWidget(total_paid)
-
-        # Sale date
-        sale_date = self.customer_data.get('created_at')
-        sale_date_label = QLabel(f"First Purchase: {sale_date.split(' ')[0] if sale_date else 'N/A'}")
-        sale_date_label.setStyleSheet("font-size: 10px; color: #bdc3c7;")
+        layout.addWidget(sale_profit_label)  # ✅ Add profit display here
+    
+        # Sale date - BOLD AND BIGGER (fetch from sale_date, not created_at)
+        sale_date = self.customer_data.get('sale_date') or self.customer_data.get('created_at')
+        if sale_date:
+            try:
+                # Parse the ISO format date
+                sale_date_obj = datetime.datetime.fromisoformat(sale_date)
+                sale_date_text = sale_date_obj.strftime("%B %d, %Y")
+            except:
+                sale_date_text = sale_date.split(' ')[0] if sale_date else 'N/A'
+        else:
+            sale_date_text = 'N/A'
+    
+        sale_date_label = QLabel(f"📅 First Purchase: {sale_date_text}")
+        sale_date_label.setStyleSheet("font-size: 13px; font-weight: bold; color: #3498db;")
         layout.addWidget(sale_date_label)
-
+    
         # Progress bar for payment completion
         total_amount = self.customer_data.get('total_amount', 0)
         amount_paid = self.customer_data.get('amount_paid', 0)
@@ -411,8 +450,8 @@ class CustomerCard(QFrame):
                 }
             """)
             layout.addWidget(progress)
-
-        # Due date
+    
+        # Due date - BOLD AND BIGGER
         due_date = self.customer_data.get('due_date')
         if due_date:
             try:
@@ -420,27 +459,27 @@ class CustomerCard(QFrame):
                 due_date_text = due_date_obj.strftime("%B %d, %Y")
             except:
                 due_date_text = "Unknown"
-            due_date_label = QLabel(f"Due Date: {due_date_text}")
+            due_date_label = QLabel(f"📆 Due Date: {due_date_text}")
+            due_date_label.setStyleSheet("font-size: 13px; font-weight: bold; color: #e67e22;")
         else:
-            due_date_label = QLabel("Due Date: N/A")
-        due_date_label.setStyleSheet("font-size: 10px; color: #7f8c8d;")
+            due_date_label = QLabel("📆 Due Date: N/A")
+            due_date_label.setStyleSheet("font-size: 13px; font-weight: bold; color: #7f8c8d;")
         layout.addWidget(due_date_label)
-        
+    
         layout.addStretch()
-        
+    
         # Balance due
         balance_due = self.customer_data.get('balance_due', 0)
         balance_due_label = QLabel(f"Balance Due: PKR {balance_due:,.2f}")
-        balance_due_label.setStyleSheet("font-size: 12px; color: #e74c3c; font-weight: bold;")
+        balance_due_label.setStyleSheet("font-size: 14px; color: #e74c3c; font-weight: bold;")
         layout.addWidget(balance_due_label)
-
-
-        #implenting duncality if balance due is greater than 0
+    
+        # Implementing functionality if balance due is greater than 0
         if balance_due > 0:
             reminder_label = QLabel("⚠️ Payment Pending")
             reminder_label.setStyleSheet("font-size: 12px; color: #e74c3c; font-weight: bold;")
             layout.addWidget(reminder_label)
-            #add a button if ther user wants to complete the payment
+            # Add a button if the user wants to complete the payment
             pay_button = QPushButton("Complete Payment")
             layout.addWidget(pay_button)
             pay_button.setStyleSheet("""
@@ -452,22 +491,26 @@ class CustomerCard(QFrame):
                     padding: 8px;
                     font-size: 14px;
                     font-weight: bold;
-                    
                 }
                 QPushButton:hover {
                     background-color: #2ecc71;
                 }
             """)
             pay_button.clicked.connect(self.open_payment_dialog)
-
+        elif discount_amount > 0:
+            # Show discount applied message for fully paid with discount
+            discount_msg = QLabel("✅ Paid in Full (Discount Applied)")
+            discount_msg.setStyleSheet("font-size: 12px; color: #27ae60; font-weight: bold;")
+            layout.addWidget(discount_msg)
+    
         # Action buttons
         button_layout = QHBoxLayout()
         button_layout.setSpacing(8)
-
+    
         print_pdf = QPushButton("Print Receipt")
         print_pdf.clicked.connect(self.print_receipt)
         button_layout.addWidget(print_pdf)
-
+    
         layout.addLayout(button_layout)
         
     def create_status_indicator(self):

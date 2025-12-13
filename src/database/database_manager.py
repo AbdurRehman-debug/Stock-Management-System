@@ -207,27 +207,31 @@ class DatabaseManager:
     def get_overall_stats(self):
         """Get overall business statistics (all time)"""
         cursor = self.conn.cursor()
-        
-        # Total sales count
+
+        # Total sales count (completed only)
         cursor.execute("SELECT COUNT(*) FROM sales WHERE status = 'completed'")
         total_sales = cursor.fetchone()[0]
-        
-        # Total profit
+
+        # Total profit (completed only)
         cursor.execute("SELECT COALESCE(SUM(total_profit), 0) FROM sales WHERE status = 'completed'")
         total_profit = cursor.fetchone()[0]
-        
-        # Total customers
-        cursor.execute("SELECT COUNT(DISTINCT id) FROM customers")
+
+        # Total UNIQUE customers who actually made completed purchases
+        cursor.execute("""
+            SELECT COUNT(DISTINCT customer_id) 
+            FROM sales 
+            WHERE status = 'completed' AND customer_id IS NOT NULL
+        """)
         total_customers = cursor.fetchone()[0]
-        
-        # Total pending payments
+
+        # Total pending payments (unpaid + partial)
         cursor.execute("""
             SELECT COALESCE(SUM(balance_due), 0) 
             FROM sales 
             WHERE status = 'completed' AND payment_status != 'paid_full'
         """)
         pending_payments = cursor.fetchone()[0]
-        
+    
         return total_sales, total_profit, total_customers, pending_payments
 
     def get_filtered_stats(self, start_date, end_date):
@@ -690,7 +694,7 @@ class DatabaseManager:
         if not result:
             return False, "No items in cart"
         
-        sale_id, total_amount = result
+        sale_id, original_total = result
         
         # Check if cart has items
         cursor.execute("SELECT COUNT(*) FROM sale_items WHERE sale_id = ?", (sale_id,))
@@ -707,9 +711,27 @@ class DatabaseManager:
                 notes=f"Added during sale #{sale_id}"
             )
         
+        # Get discount amount (default to 0 if not provided)
+        discount_amount = sale_data.get('discount_amount', 0)
+        
+        # Calculate final total after discount
+        final_total = original_total - discount_amount
+        
+        # ✅ CORRECTED PROFIT CALCULATION
+        # Get total cost of all items (purchase_price × quantity)
+        cursor.execute("""
+            SELECT COALESCE(SUM(unit_cost * quantity), 0) 
+            FROM sale_items 
+            WHERE sale_id = ?
+        """, (sale_id,))
+        total_cost = cursor.fetchone()[0]
+        
+        # Actual profit = Revenue after discount - Total cost
+        actual_profit = final_total - total_cost
+        
         # Calculate payment details
         amount_paid = sale_data.get('amount_paid', 0)
-        balance_due = total_amount - amount_paid
+        balance_due = final_total - amount_paid
         
         # Determine payment status
         if balance_due <= 0:
@@ -725,33 +747,43 @@ class DatabaseManager:
             SET status = 'completed',
                 customer_id = ?,
                 sale_date = ?,
+                total_amount = ?,
                 amount_paid = ?,
                 balance_due = ?,
                 payment_method = ?,
                 payment_status = ?,
                 due_date = ?,
                 notes = ?,
+                discount_amount = ?,
+                total_profit = ?,
                 updated_at = ?
             WHERE id = ?
         """, (
             customer_id,
             sale_data['sale_date'].isoformat(),
+            final_total,  # Store final total after discount
             amount_paid,
             balance_due,
             sale_data['payment_method'].lower().replace(' ', '_'),
             payment_status,
             sale_data['due_date'].isoformat() if sale_data['due_date'] else None,
             sale_data['notes'],
+            discount_amount,
+            actual_profit,  # ✅ CORRECTED PROFIT
             datetime.now().isoformat(),
             sale_id
         ))
         
         # Record initial payment if any
         if amount_paid > 0:
+            payment_notes = "Initial payment during sale"
+            if discount_amount > 0:
+                payment_notes = f"Full payment after PKR {discount_amount:,.2f} discount"
+            
             cursor.execute("""
                 INSERT INTO payment_history (sale_id, payment_amount, payment_method, notes)
                 VALUES (?, ?, ?, ?)
-            """, (sale_id, amount_paid, sale_data.get('payment_method', 'cash'), "Initial payment during sale"))
+            """, (sale_id, amount_paid, sale_data.get('payment_method', 'cash'), payment_notes))
         
         # Update stock quantities
         cursor.execute("SELECT product_variant_id, quantity FROM sale_items WHERE sale_id = ?", (sale_id,))
@@ -765,19 +797,17 @@ class DatabaseManager:
         # Update company totals
         cursor.execute("SELECT COUNT(*) FROM sales WHERE status = 'completed'")
         sales_count = cursor.fetchone()[0]
-
+    
         cursor.execute("SELECT COALESCE(SUM(total_profit), 0) FROM sales WHERE status = 'completed'")
         total_profit = cursor.fetchone()[0]
-
+    
         cursor.execute("""
             UPDATE company 
             SET total_sales = ?, total_profit = ?
         """, (sales_count, total_profit))
-
+    
         self.conn.commit()
         return True, f"Sale completed successfully. Sale ID: {sale_id}"
-    
-    
 
     # ============== REPORTING METHODS ==============
     
@@ -789,32 +819,32 @@ class DatabaseManager:
             SELECT 
                 c.id, c.name, c.phone, c.customer_type, c.notes, 
                 s.id as sale_id, s.payment_status, s.total_amount, 
-                s.amount_paid, s.balance_due, s.due_date, s.created_at
+                s.amount_paid, s.balance_due, s.due_date, s.sale_date,
+                s.discount_amount  -- ADD THIS LINE
             FROM customers c 
             JOIN sales s ON c.id = s.customer_id
             WHERE s.status = 'completed'
-            ORDER BY s.created_at DESC
+            ORDER BY s.sale_date DESC
         """)
-
+    
         result = cursor.fetchall()
         
-        sale_id = result[0][5] if result else None
-        
-        #get the name of items the customer bought with categories
-        cursor.execute("""
-            SELECT 
-                p.name as product_name, c.name as category_name, pv.selling_price, si.quantity
-            FROM sale_items si
-            JOIN product_variants pv ON si.product_variant_id = pv.id
-            JOIN products p ON pv.product_id = p.id
-            JOIN categories c ON pv.category_id = c.id
-            WHERE si.sale_id = ?
-        """, (sale_id,))
-        item_names = cursor.fetchall()
-        
-
         customers = []
         for row in result:
+            sale_id = row[5]
+            
+            # Get the items purchased for this specific sale
+            cursor.execute("""
+                SELECT 
+                    p.name as product_name, c.name as category_name, pv.selling_price, si.quantity
+                FROM sale_items si
+                JOIN product_variants pv ON si.product_variant_id = pv.id
+                JOIN products p ON pv.product_id = p.id
+                JOIN categories c ON pv.category_id = c.id
+                WHERE si.sale_id = ?
+            """, (sale_id,))
+            item_names = cursor.fetchall()
+            
             customer = {
                 "id": row[0],
                 "name": row[1],
@@ -827,12 +857,12 @@ class DatabaseManager:
                 "amount_paid": row[8],
                 "balance_due": row[9],
                 "due_date": row[10],
-                "created_at": row[11],
+                "sale_date": row[11],
+                "discount_amount": row[12],  # ADD THIS LINE
                 "items_purchased": item_names
             }
             customers.append(customer)
         return customers
-    
     def process_partial_payment(self, sale_id, payment_amount, payment_method='cash', notes=None):
         """Process a partial payment for an existing sale"""
         cursor = self.conn.cursor()
